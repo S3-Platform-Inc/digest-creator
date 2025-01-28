@@ -4,10 +4,10 @@ from pptx.util import Cm, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
-from datetime import datetime
 from deep_translator import GoogleTranslator
-from utils import current_time
 from os.path import join
+
+from utils import current_time
 
 
 class DigestCreator():
@@ -136,7 +136,7 @@ class DigestCreator():
         print(f"Presentation created successfully: {presentation_file}")
         pass
 
-    def load_data_table(self, df_path: str, df_name:str, sep: str = '\t'):
+    def load_data_table(self, df_path: str, df_name: str, sep: str = '\t'):
 
         df = pd.read_csv(filepath_or_buffer=join(df_path, df_name), sep=sep)
 
