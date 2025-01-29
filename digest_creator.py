@@ -227,6 +227,8 @@ class DigestCreator():
 
         df = df[df['sum_scores'] >= score_sum_threshold]
 
+        df.sort_values(by='src_name', inplace=True)
+
         print(f"Материал должен иметь от {score_sum_threshold} положительных оценок экспертов")
         print(f"Кол-во материалов, удовлетворяющих условию: {df.shape[0]}")
 
