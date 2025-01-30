@@ -391,7 +391,7 @@ class DigestCreator():
         return df
 
     def create_digest(self, df_path, df_name, digest_name, save_path, df_sep: str = '\t', translate_text: bool = False,
-                      score_sum_threshold: int = 1):
+                      score_sum_threshold: int = 1, exclude_from_min_1: list = None):
 
         df = self.load_data_table(df_path=df_path, df_name=df_name, sep=df_sep)
 
@@ -401,10 +401,12 @@ class DigestCreator():
 
         df['fix_src_name'] = df['src_name'].map(self.src_name_beautify)
 
-        df.sort_values(by='fix_src_name', inplace=True)
+        if exclude_from_min_1:
+            # Drop rows that have any of the values in the 'rebounds' column
+            df = df[~df['weblink'].isin(exclude_from_min_1)]
+            print(f'Удалено материалов, исключенных при просмотре черновика: {len(exclude_from_min_1)}')
 
-        print(f"Материал должен иметь от {score_sum_threshold} положительных оценок экспертов")
-        print(f"Кол-во материалов, удовлетворяющих условию: {df.shape[0]}")
+        df.sort_values(by='fix_src_name', inplace=True)
 
         if translate_text:
             print('Внимание! Включен перевод текста. Создание дайджеста займет больше времени.')
@@ -415,6 +417,9 @@ class DigestCreator():
         self.add_graph_slide(presentation=presentation, df=df, title='Обзор источников')
 
         df = df[df['sum_scores'] >= score_sum_threshold]
+
+        print(f"Материал должен иметь от {score_sum_threshold} положительных оценок экспертов")
+        print(f"Кол-во материалов, удовлетворяющих условию: {df.shape[0]}")
 
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
