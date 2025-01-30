@@ -8,6 +8,9 @@ from deep_translator import GoogleTranslator
 from os.path import join
 from tqdm import tqdm
 from src.utils import current_time
+import numpy as np
+from pptx.enum.chart import XL_CHART_TYPE
+from pptx.chart.data import CategoryChartData
 
 
 class DigestCreator():
@@ -104,13 +107,95 @@ class DigestCreator():
 
         textbox_info.text_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
 
-    def create_and_format_slide(self, presentation: Presentation(), df_row, translate_text: bool = False):
+    def add_graph_slide(self, presentation: Presentation(), df, title: str = 'Обзор источников'):
+
+        result = df.groupby('fix_src_name')['min_1'].value_counts().unstack(fill_value=0)
+
+        # Convert to lists
+        sources = result.index.tolist()
+        src_0_count = result[0].tolist()  # Counts of 0
+        src_1_count = result[1].tolist()  # Counts of 1
+
+        slide = presentation.slides.add_slide(presentation.slide_layouts[6])  # Using a blank slide layout
+
+        # Define chart data
+        chart_data = CategoryChartData()
+        chart_data.categories = sources
+        chart_data.add_series('Неинтересно', src_0_count)
+        chart_data.add_series('Интересно', src_1_count)
+
+        # Define position and size of the chart
+        x, y, cx, cy = Cm(1), Cm(2.5), Cm(31.87), Cm(15.8)
+
+        # Add the chart to the slide as a stacked bar chart
+        graphic_frame = slide.shapes.add_chart(
+            XL_CHART_TYPE.BAR_STACKED, x, y, cx, cy, chart_data
+        )
+
+        chart = graphic_frame.chart
+
+        # Set colors for each series using points and add data labels
+        for i, point in enumerate(chart.series[0].points):
+            fill = point.format.fill
+            fill.solid()
+            fill.fore_color.rgb = RGBColor(2, 175, 255)
+            point.has_data_labels = True  # Enable data labels
+            data_label = point.data_label
+            text_frame = data_label.text_frame
+            # text_frame.clear()  # this line is not needed, assigning to .text does this
+            text_frame.text = str.format(str(src_0_count[i]))
+            # for paragraph in text_frame.paragraphs:
+            #     paragraph.font.size = Pt(10)
+            #
+            # # -- OR --
+            #
+            # # for run in text_frame.paragraphs[0].runs:
+            # #     run.font.size = Pt(10)
+        for i, point in enumerate(chart.series[1].points):
+            fill = point.format.fill
+            fill.solid()
+            fill.fore_color.rgb = RGBColor(31, 91, 215)
+            point.has_data_labels = True  # Enable data labels
+            point.data_label.text_frame.paragraphs[0].font.size = Pt(12)
+            point.data_label.text_frame.paragraphs[0].text = str(src_1_count[i])  # Set label text
+            # point.data_label.text_frame.paragraphs[0].font.size = Pt(12)
+            # point.data_label.text_frame.paragraphs[0].font.color.rgb = RGBColor(90, 90, 90)
+
+        category_axis = chart.category_axis
+        category_axis.tick_labels.font.size = Pt(14)
+
+        value_axis = chart.value_axis
+        value_axis.tick_labels.font.size = Pt(14)
+        value_axis.tick_labels.font.color.rgb = RGBColor(128, 128, 128)  # Grey color
+
+        # Change grid lines color to grey (if applicable)
+        value_axis.major_gridlines.format.line.color.rgb = RGBColor(128, 128, 128)  # Grey color
+
+        # Change x-axis line color to grey
+        value_axis.format.line.color.rgb = RGBColor(128, 128, 128)  # Grey color for x-axis line
+
+        value_axis.format.line.width = Pt(0)
+
+        # Change y-axis line color to grey (if applicable)
+        category_axis.format.line.color.rgb = RGBColor(128, 128, 128)  # Grey color for y-axis line
+
+        textbox_title = slide.shapes.add_textbox(left=Cm(1), top=Cm(1), width=Cm(14), height=Cm(1.2))
+
+        # Title with wrapping enabled
+        textbox_title.text_frame.paragraphs[0].font.bold = True
+        textbox_title.text_frame.paragraphs[0].font.size = Pt(24)
+        textbox_title.text_frame.word_wrap = True
+        textbox_title.text_frame.paragraphs[0].text = title
+
+        textbox_title.text_frame.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
+
+    def add_doc_info_slide(self, presentation: Presentation(), df_row, translate_text: bool = False):
         # Create a new slide
         slide_layout = presentation.slide_layouts[6]  # Using a blank slide layout
         slide = presentation.slides.add_slide(slide_layout)
 
         # Add source name above the title
-        source = self.src_name_beautify[df_row['src_name']]
+        source = df_row['fix_src_name']
         title = df_row['title']
         abstract = self.strip_text(text=df_row['abstract'], n_symbols=700)
         if source == 'W3C':
@@ -270,9 +355,11 @@ class DigestCreator():
 
         df['sum_scores'] = df['user_1_score'].fillna(0) + df['user_2_score'].fillna(0) + df['user_3_score'].fillna(0)
 
-        df = df[df['sum_scores'] >= score_sum_threshold]
+        df['min_1'] = np.where(df['sum_scores'] < 1, 0, 1)
 
-        df.sort_values(by='src_name', inplace=True)
+        df['fix_src_name'] = df['src_name'].map(self.src_name_beautify)
+
+        df.sort_values(by='fix_src_name', inplace=True)
 
         print(f"Материал должен иметь от {score_sum_threshold} положительных оценок экспертов")
         print(f"Кол-во материалов, удовлетворяющих условию: {df.shape[0]}")
@@ -283,9 +370,13 @@ class DigestCreator():
 
         self.add_title_slide(presentation=presentation)
 
+        self.add_graph_slide(presentation=presentation, df=df, title='Обзор источников')
+
+        df = df[df['sum_scores'] >= score_sum_threshold]
+
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
-                self.create_and_format_slide(presentation=presentation, df_row=row, translate_text=translate_text)
+                self.add_doc_info_slide(presentation=presentation, df_row=row, translate_text=translate_text)
             except Exception as e:
                 print(f'Возникла ошибке при обработке строки {row}')
                 print(f'Ошибка:\n{e}')

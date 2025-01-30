@@ -1,4 +1,8 @@
 from src.digest_creator import DigestCreator
+from src.utils import current_time
+import numpy as np
+
+Digest = DigestCreator()
 
 src_name_beautify = {
         'w3c': 'W3C',
@@ -33,33 +37,15 @@ src_name_beautify = {
         'openid': 'OpendID',
         'pwc': 'PWC'}
 
-Digest = DigestCreator()
-
 df = Digest.load_data_table(df_path="../../Data/", df_name="view_experts_score_with_src_name_datetime.tsv", sep='\t')
 
-# for el in list(df['src_name'].unique()):
-#     print(el)
 df['sum_scores'] = df['user_1_score'].fillna(0) + df['user_2_score'].fillna(0) + df['user_3_score'].fillna(0)
 
-min_1_vals = []
-
-for i, row in df.iterrows():
-    if row['sum_scores'] >= 1:
-        min_1_vals.append(1)
-    else:
-        min_1_vals.append(0)
-
-df['min_1'] = min_1_vals
+# Assuming df is your DataFrame
+df['min_1'] = np.where(df['sum_scores'] < 1, 0, 1)
 
 df['fix_src_name'] = df['src_name'].map(src_name_beautify)
 
-# To verify the changes
-print(df[['src_name', 'fix_src_name']])
-
-print(df.info())
-print(df.head())
-
-print(df[df['sum_scores'] >= 3].head()[['user_1_score', 'user_2_score', 'user_3_score']])
-print(df[df['sum_scores'] >= 3].shape)
-print(f'До удаления дублиактов: {df.shape}')
-print(f"После удаления дубликатов: {df.drop_duplicates(subset=['title', 'published', 'weblink']).shape}")
+prs = Digest.create_presentation()
+Digest.add_graph_slide(presentation=prs, df=df, title='Обзор источников')
+Digest.save_presentation(presentation=prs, name=f'chart_slide_{current_time()}', path='../../ChartTests/')

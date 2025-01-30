@@ -7,6 +7,39 @@ from pptx.dml.color import RGBColor
 from src.digest_creator import DigestCreator
 import numpy as np
 
+src_name_beautify = {
+        'w3c': 'W3C',
+        'jcb': 'JCB',
+        'visa': 'VISA',
+        'emvco': 'EMVCo',
+        'paymentsdive': 'PaymentsDive',
+        'mit': 'MIT',
+        'bis': 'BIS',
+        'payments-journal': 'PaymentsJournal',
+        'retailloyalty': 'RetailLoyalty',
+        'eba': 'European Banking Association',
+        'businesswire': 'Businesswire',
+        'techcrunch': 'TechCrunch',
+        'nfcw': 'NFCW',
+        'thepaypers': 'ThePaypers',
+        'americanexpress': 'American Express',
+        'ieee': 'IEEE',
+        'eupay': 'European Payments Council',
+        'iso20022': 'ISO20022',
+        'fido': 'FIDO',
+        'finextra': 'Finextra',
+        'kpmg': 'KPMG',
+        'rfc': 'RFC',
+        'ecb': 'European Central Bank',
+        'pci': 'PCI',
+        'eucommission': 'European Commission',
+        'nist': 'NIST',
+        'paypal': 'Paypal',
+        'swift': 'SWIFT',
+        'openbanking': 'OpenBanking',
+        'openid': 'OpendID',
+        'pwc': 'PWC'}
+
 Digest = DigestCreator()
 df = Digest.load_data_table(df_path="../../Data/", df_name="view_experts_score_with_src_name_datetime.tsv", sep='\t')
 
@@ -26,8 +59,10 @@ print(df['src_name'].nunique())
 
 df.sort_values(by='src_name', inplace=True)
 
+df['fix_src_name'] = df['src_name'].map(src_name_beautify)
+
 # Assuming df is your DataFrame
-result = df.groupby('src_name')['min_1'].value_counts().unstack(fill_value=0)
+result = df.groupby('fix_src_name')['min_1'].value_counts().unstack(fill_value=0)
 print(result.info())
 print(result)
 
@@ -86,4 +121,4 @@ for i, point in enumerate(chart.series[1].points):
     point.data_label.text_frame.text = str(values_category_2[i])  # Set label text
 
 # Save the presentation
-prs.save('../ChartTests/horizontal_stacked_bar_chart_with_data_labels.pptx')
+prs.save('../../ChartTests/horizontal_stacked_bar_chart_with_data_labels.pptx')
