@@ -1,8 +1,8 @@
-from digest_creator import DigestCreator
+from src.digest_creator import DigestCreator
 
 Digest = DigestCreator()
 
-df = Digest.load_data_table(df_path="../Data/", df_name="view_experts_score_with_src_name_datetime.tsv", sep='\t')
+df = Digest.load_data_table(df_path="../../Data/", df_name="view_experts_score_with_src_name_datetime.tsv", sep='\t')
 
 # for el in list(df['src_name'].unique()):
 #     print(el)
