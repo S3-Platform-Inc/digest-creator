@@ -187,7 +187,24 @@ class DigestCreator():
         textbox_title.text_frame.word_wrap = True
         textbox_title.text_frame.paragraphs[0].text = title
 
-        textbox_title.text_frame.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
+        fill = textbox_title.text_frame.paragraphs[0].font.fill
+        fill.gradient()  # Set fill type to gradient
+
+        # Set up gradient stops
+        gradient_stops = fill.gradient_stops
+
+        # First stop (0% position)
+        stop1 = gradient_stops[0]
+        stop1.position = 0.0  # Position at start
+        stop1.color.rgb = RGBColor(5, 167, 251)  # Red color
+
+        # Second stop (100% position)
+        stop2 = gradient_stops[1]
+        stop2.position = 1.0  # Position at end
+        stop2.color.rgb = RGBColor(29, 96, 217)  # Blue color
+
+        # Optionally set the angle of the gradient
+        fill.gradient_angle = 270  # Angle in degrees
 
     def add_doc_info_slide(self, presentation: Presentation(), df_row, translate_text: bool = False):
         # Create a new slide
@@ -229,6 +246,32 @@ class DigestCreator():
 
         # Add text boxes for source, title, abstract, and web link
         textbox_source = slide.shapes.add_textbox(Cm(1), Cm(1), half_width, Cm(1))
+
+        fill = textbox_source.text_frame.paragraphs[0].font.fill
+        fill.gradient()  # Set fill type to gradient
+
+        # Set up gradient stops
+        gradient_stops = fill.gradient_stops
+
+        # First stop (0% position)
+        stop1 = gradient_stops[0]
+        stop1.position = 0.0  # Position at start
+        stop1.color.rgb = RGBColor(217, 217, 217)  # Red color
+
+        # Second stop (100% position)
+        stop2 = gradient_stops[1]
+        stop2.position = 1.0  # Position at end
+        stop2.color.rgb = RGBColor(166, 166, 166)  # Blue color
+
+        # Optionally set the angle of the gradient
+        fill.gradient_angle = 270  # Angle in degrees
+
+        # Set text for each text box
+        textbox_source.text_frame.paragraphs[0].font.bold = True
+        textbox_source.text_frame.paragraphs[0].font.size = Pt(20)
+        textbox_source.text_frame.word_wrap = True
+        textbox_source.text_frame.paragraphs[0].text = source
+
         textbox_title = slide.shapes.add_textbox(Cm(1), Cm(2), title_width, title_height)
 
         if len(title) <= 60:
@@ -249,8 +292,7 @@ class DigestCreator():
         )
         text_box_user_comment = slide.shapes.add_textbox(Cm(18.5), Cm(15.5), Cm(13), Cm(3))
 
-        # Set text for each text box
-        textbox_source.text = source
+
 
         # Title with wrapping enabled
         textbox_title.text_frame.paragraphs[0].font.bold = True
