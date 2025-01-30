@@ -7,7 +7,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from deep_translator import GoogleTranslator
 from os.path import join
 from tqdm import tqdm
-from utils import current_time
+from src.utils import current_time
 
 
 class DigestCreator():
@@ -58,6 +58,51 @@ class DigestCreator():
         stripped_text = stripped_text[:-1]
 
         return stripped_text
+
+    def add_title_slide(self, presentation: Presentation(), title: str = 'Дайджест инноваций'):
+        slide_layout = presentation.slide_layouts[6]  # Using a blank slide layout
+        slide = presentation.slides.add_slide(slide_layout)
+
+        slide.shapes.add_picture("../SlideTemplates/top_bottom_blue_gradient_bk.png", 0, 0,
+                                 width=presentation.slide_width,
+                                 height=presentation.slide_height)
+
+        images = [
+            {'path': '../SlideTemplates/MIR_white_logo.png', 'left': Cm(1), 'top': Cm(1), 'height': Cm(0.6)},
+            {'path': '../SlideTemplates/big_IT_leaf.png', 'left': Cm(16), 'top': Cm(3), 'height': Cm(21)},
+            {'path': '../SlideTemplates/M_green_leaf.png', 'left': Cm(13.9), 'top': Cm(13.2), 'height': Cm(2.7),
+             'rotation': 190},
+            {'path': '../SlideTemplates/S_green_leaf.png', 'left': Cm(27.1), 'top': Cm(2.9), 'height': Cm(4),
+             'rotation': 190},
+            {'path': '../SlideTemplates/XS_green_leaf.png', 'left': Cm(22), 'top': Cm(2.9), 'height': Cm(1.4),
+             'rotation': 190},
+
+        ]
+
+        for img in images:
+            pic = slide.shapes.add_picture(img['path'], img['left'], img['top'], height=img['height'])
+            if 'rotation' in img.keys():
+                pic.rotation = img['rotation']
+
+        textbox_title = slide.shapes.add_textbox(left=Cm(1), top=Cm(6.8), width=Cm(14), height=Cm(5.4))
+
+        # Title with wrapping enabled
+        textbox_title.text_frame.paragraphs[0].font.bold = True
+        textbox_title.text_frame.paragraphs[0].font.size = Pt(60)
+        textbox_title.text_frame.word_wrap = True
+        textbox_title.text_frame.paragraphs[0].text = title
+
+        textbox_title.text_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
+
+        textbox_info = slide.shapes.add_textbox(left=Cm(1), top=Cm(15.6), width=Cm(14), height=Cm(5.4))
+
+        # Title with wrapping enabled
+        textbox_info.text_frame.paragraphs[0].font.bold = False
+        textbox_info.text_frame.paragraphs[0].font.size = Pt(20)
+        textbox_info.text_frame.word_wrap = True
+        textbox_info.text_frame.paragraphs[0].text = f'Департамент Инноваций, {current_time(return_str=False):%d.%m.%Y}'
+
+        textbox_info.text_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
 
     def create_and_format_slide(self, presentation: Presentation(), df_row, translate_text: bool = False):
         # Create a new slide
@@ -235,6 +280,8 @@ class DigestCreator():
         if translate_text:
             print('Внимание! Включен перевод текста. Создание дайджеста займет больше времени.')
         presentation = self.create_presentation()
+
+        self.add_title_slide(presentation=presentation)
 
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
