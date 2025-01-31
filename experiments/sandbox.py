@@ -35,6 +35,24 @@ sources = result.index.tolist()
 src_0_count = result[0].tolist()  # Counts of 0
 src_1_count = result[1].tolist()  # Counts of 1
 
+special_weblinks = ['https://eba-cms-prod.azurewebsites.net/media/azure/production/4055/eba_20241030_cross-border_payments_survey_executive_summary.pdf',
+                    'https://eba-cms-prod.azurewebsites.net/media/azure/production/4015/eba_20240926_two-page_management-summary_eba-fraud-taxonomy_v11.pdf',
+                    'https://eba-cms-prod.azurewebsites.net/media/azure/production/4014/eba_20240916_one-page_management-summary_eba-fraud-taxonomy_v10.pdf',
+                    'https://thepaypers.com/payments-general/the-riksbank-opens-its-payment-system--1271153']
+
+df.loc[df['weblink'].isin(special_weblinks) & (df['min_1'] == 1), 'min_1'] = 0
+
+print('\n===AFTER===\n')
+
+print("df['min_1'].value_counts(dropna=False):")
+print(df['min_1'].value_counts(dropna=False))
+
+print("\ndf['src_name'].value_counts(dropna=False):")
+print(df['src_name'].value_counts(dropna=False))
+
+print("\ndf['src_name'].nunique()")
+print(df['src_name'].nunique())
+
 # Display the lists
 print("Sources:", sources)
 print("Counts of 0:", src_0_count)

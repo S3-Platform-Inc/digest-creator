@@ -109,7 +109,7 @@ class DigestCreator():
 
     def add_graph_slide(self, presentation: Presentation(), df, title: str = 'Обзор источников'):
 
-        result = df.groupby('fix_src_name')['min_1'].value_counts().unstack(fill_value=0)
+        result = df.groupby('fix_src_name')['to_digest'].value_counts().unstack(fill_value=0)
 
         # Convert to lists
         sources = result.index.tolist()
@@ -397,14 +397,15 @@ class DigestCreator():
 
         df['sum_scores'] = df['user_1_score'].fillna(0) + df['user_2_score'].fillna(0) + df['user_3_score'].fillna(0)
 
-        df['min_1'] = np.where(df['sum_scores'] < 1, 0, 1)
+        df['to_digest'] = np.where(df['sum_scores'] < score_sum_threshold, 0, 1)
 
         df['fix_src_name'] = df['src_name'].map(self.src_name_beautify)
 
         if exclude_from_min_1:
+            print(f"Кол-во материалов, удовлетворяющих условию до изменения оценок: {df[df['to_digest'] == 1].shape[0]}")
             # Drop rows that have any of the values in the 'rebounds' column
-            df = df[~df['weblink'].isin(exclude_from_min_1)]
-            print(f'Удалено материалов, исключенных при просмотре черновика: {len(exclude_from_min_1)}')
+            df.loc[df['weblink'].isin(exclude_from_min_1) & (df['to_digest'] == 1), 'to_digest'] = 0
+            print(f'Изменено оценок с "1" на "0" после просмотра черновика: {len(exclude_from_min_1)}')
 
         df.sort_values(by='fix_src_name', inplace=True)
 
@@ -416,7 +417,7 @@ class DigestCreator():
 
         self.add_graph_slide(presentation=presentation, df=df, title='Обзор источников')
 
-        df = df[df['sum_scores'] >= score_sum_threshold]
+        df = df[df['to_digest'] == 1]
 
         print(f"Материал должен иметь от {score_sum_threshold} положительных оценок экспертов")
         print(f"Кол-во материалов, удовлетворяющих условию: {df.shape[0]}")
