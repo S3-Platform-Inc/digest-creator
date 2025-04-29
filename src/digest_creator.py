@@ -45,7 +45,8 @@ class DigestCreator():
         'swift': 'SWIFT',
         'openbanking': 'OpenBanking',
         'openid': 'OpendID',
-        'pwc': 'PWC'}
+        'pwc': 'PWC',
+    'iso': 'ISO'}
 
     def __init__(self):
         pass
@@ -206,7 +207,7 @@ class DigestCreator():
         # Optionally set the angle of the gradient
         fill.gradient_angle = 270  # Angle in degrees
 
-    def add_doc_info_slide(self, presentation: Presentation(), df_row, translate_text: bool = False):
+    def add_doc_info_slide(self, presentation: Presentation(), df_row, translate_text: bool = False, add_slide_number: bool = False):
         # Create a new slide
         slide_layout = presentation.slide_layouts[6]  # Using a blank slide layout
         slide = presentation.slides.add_slide(slide_layout)
@@ -282,7 +283,7 @@ class DigestCreator():
             textbox_abstract = slide.shapes.add_textbox(Cm(1), Cm(5), abstract_width, abstract_height)
 
         textbox_link = slide.shapes.add_textbox(Cm(1), Cm(16), Cm(5), Cm(2))
-        slide_number = slide.shapes.add_textbox(Cm(32.5), Cm(17.8), Cm(1), Cm(0.7))
+
         rectangle_shape = slide.shapes.add_shape(
             MSO_SHAPE.RECTANGLE,
             Cm(18),
@@ -330,9 +331,11 @@ class DigestCreator():
         hyperlink_run.text = 'Подробнее'
         hyperlink_run.hyperlink.address = web_link
 
-        slide_number.text_frame.paragraphs[0].text = str(len(presentation.slides))
-        slide_number.text_frame.paragraphs[0].font.size = Pt(12)
-        slide_number.text_frame.paragraphs[0].alignment = PP_ALIGN.RIGHT
+        if add_slide_number:
+            slide_number = slide.shapes.add_textbox(Cm(32.5), Cm(17.8), Cm(1), Cm(0.7))
+            slide_number.text_frame.paragraphs[0].text = str(len(presentation.slides))
+            slide_number.text_frame.paragraphs[0].font.size = Pt(12)
+            slide_number.text_frame.paragraphs[0].alignment = PP_ALIGN.RIGHT
 
         fill_format = rectangle_shape.fill
         fill_format.gradient()  # Apply gradient fill
@@ -373,9 +376,16 @@ class DigestCreator():
         print(f"Презентация успешно создана: {presentation_file}")
         pass
 
-    def load_data_table(self, df_path: str, df_name: str, sep: str = '\t'):
+    def load_data_table(self, df_path: str, df_name: str, sep: str = '\t',):
 
-        df = pd.read_csv(filepath_or_buffer=join(df_path, df_name), sep=sep)
+        file_type = df_name.split('.')[1]
+        if file_type == 'csv' or file_type == 'tsv':
+            df = pd.read_csv(filepath_or_buffer=join(df_path, df_name), sep=sep)
+        elif file_type == 'xlsx':
+            df = pd.read_excel(join(df_path, df_name))
+        else:
+            print(f'Неподдерживаемый тип файла: {file_type}. Отмена')
+            return
 
         df['src_name'] = df['src_name'].astype('str')
         df['abstract'] = df['abstract'].astype('str')
@@ -391,13 +401,14 @@ class DigestCreator():
         return df
 
     def create_digest(self, df_path, df_name, digest_name, save_path, df_sep: str = '\t', translate_text: bool = False,
-                      score_sum_threshold: int = 1, exclude_from_min_1: list = None):
+                      score_sum_threshold: int = 1, exclude_from_min_1: list = None, use_to_digest_col: bool = False):
 
         df = self.load_data_table(df_path=df_path, df_name=df_name, sep=df_sep)
 
         df['sum_scores'] = df['user_1_score'].fillna(0) + df['user_2_score'].fillna(0) + df['user_3_score'].fillna(0)
 
-        df['to_digest'] = np.where(df['sum_scores'] < score_sum_threshold, 0, 1)
+        if not to_digest:
+            df['to_digest'] = np.where(df['sum_scores'] < score_sum_threshold, 0, 1)
 
         df['fix_src_name'] = df['src_name'].map(self.src_name_beautify)
 
@@ -419,7 +430,10 @@ class DigestCreator():
 
         df = df[df['to_digest'] == 1]
 
-        print(f"Материал должен иметь от {score_sum_threshold} положительных оценок экспертов")
+        if use_to_digest_col:
+            print('Выполняется отбор на основе оценок после просмотра таблицы дайджеста (колонка to_digest)')
+        else:
+            print(f"Материал должен иметь положительных оценок экспертов: {score_sum_threshold}")
         print(f"Кол-во материалов, удовлетворяющих условию: {df.shape[0]}")
 
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
